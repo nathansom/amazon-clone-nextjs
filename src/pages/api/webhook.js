@@ -5,10 +5,10 @@ import * as admin from 'firebase-admin';
 const serviceAccount = require('../../../permissions.json');
 
 const app = !admin.apps.length 
-? admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-}) 
-: admin.app();
+    ? admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+        }) 
+    : admin.app();
 
 // Establish connection to Stripe
 
@@ -21,13 +21,14 @@ const fulfillOrder = async (session) => {
 
     return app
     .firestore()
-    .collection.apply('user')
+    .collection.apply('users')
     .doc(session.metadata.email)
     .collection('orders').doc(session.id).set({
         amount: session.amount_total / 100,
         amount_shipping: session.total_details.amount_shipping / 100,
         images: JSON.parse(session.metadata.images),
-        timestamp: admin.firestore.FieldValue.serverTimestamp()
+        title: JSON.parse(session.metadata.titles),
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
     })
     .then(() => {
         console.log(`SUCCESS: Order ${session.id} had been added to the DB`);
@@ -68,3 +69,5 @@ export const config = {
         externalResolver: true,
     },
 };
+
+{/** continue 2:36:31 */}

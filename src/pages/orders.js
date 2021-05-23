@@ -1,7 +1,10 @@
-import { useSession } from "next-auth/client";
+import { getSession, useSession } from "next-auth/client";
 import Header from "../components/Header"
+import moment from "moment";
+import db from "../../firebase"
+import Order from "../components/Order";
 
-function Orders() {
+function Orders({ orders }) {
     const [session] = useSession();
 
     return (
@@ -13,12 +16,27 @@ function Orders() {
                 </h1>
 
                 {session ? (
-                    <h2>x Orders</h2>
+                    <h2>{orders.length} Orders</h2>
                 ) : (
                     <h2>Please sign in to see your orders</h2>
                 )}
 
-                <div className="mt-5 space-y-4"></div>
+                <div className="mt-5 space-y-4">
+                    {orders?.map(
+                        ({ id, amount, amountShipping, items, timestamp, images }
+                        ) => (
+                        <Order
+                            key={id}
+                            id={id}
+                            amount={amount}
+                            amountShipping={amountShipping}
+                            items={items}
+                            timestamp={timestamp}
+                            images={imags}
+                        />
+                        )
+                    )}
+                </div>
             </main>
         </div>
     )
@@ -26,4 +44,46 @@ function Orders() {
 
 export default Orders;
 
-{/** stopped at 2:09:40 https://www.youtube.com/watch?v=4E0WOUYF-QI */}
+// everything under SSR is Node.JS :) !
+export async function getServerSideProps(context) {
+    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
+    // Get the users logged in credentials....
+    const session = await getSession(context);
+
+    if (!session) {
+        return {
+            propes: {},
+        };
+    }
+
+    // Firebase db
+    const stripeOrders = await db
+        .collection('users')
+        .doc(session.user.email)
+        .collection('orders')
+        .orderBy('timestamp','desc')
+        .get();
+
+    const orders = await Promise.all(
+        stripeOrders.docs.map(async (order) => ({
+            id: order.id,
+            amount: order.data().amount,
+            amountShipping: order.data().amount,
+            images: order.data().images,
+            timestamp: moment(order.data().timestamp.toDate()).unix(),
+            items: (
+                await stripe.checkout.sessions.listLineItems(order.id, {
+                    limit: 100,
+                })
+            ).data,
+        }))
+    );
+
+    return {
+        props: {
+            orders,
+        }
+    }
+}
+
