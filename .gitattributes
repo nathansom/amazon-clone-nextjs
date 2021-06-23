@@ -1,6 +1,0 @@
-permissions.json filter=git-crypt diff=git-crypt
-.env.local filter=git-crypt diff=git-crypt
-
-*.key filter=git-crypt diff=git-crypt
-secretdir/** filter=git-crypt diff=git-crypt
-
