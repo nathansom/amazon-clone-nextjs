@@ -1,5 +1,6 @@
 import { buffer } from 'micro';
-import * as admin from 'firebase-admin';
+
+const admin = require('firebase-admin');
 
 // Secure a connection to Firebase from the backend
 const serviceAccount = require('../../../permissions');
@@ -12,7 +13,7 @@ const app = !admin.apps.length
 
 // Establish connection to Stripe
 
-const stripe = require('stripe')(`${process.env.STRIPE_SECRET_KEY}`);
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 const endpointSecret = `${process.env.STRIPE_SIGNING_SECRET}`;
 
@@ -69,5 +70,3 @@ export const config = {
         externalResolver: true,
     },
 };
-
-{/** continue 2:36:31 */}
