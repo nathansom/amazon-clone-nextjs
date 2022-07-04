@@ -46,14 +46,14 @@ export default Orders;
 
 // everything under SSR is Node.JS :) !
 export async function getServerSideProps(context) {
-    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+    const stripe = require("stripe")(process.env.NEXT_PUBLIC_STRIPE_SECRET_KEY);
 
     // Get the users logged in credentials....
     const session = await getSession(context);
 
     if (!session) {
         return {
-            propes: {},
+            props: {},
         };
     }
 
