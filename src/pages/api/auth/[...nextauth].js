@@ -7,9 +7,10 @@ export default NextAuth({
     GooglegleProvider({
       clientId: process.env.GOOGLE_ID,
       clientSecret: process.env.GOOGLE_SECRET,
-    })
+    }),
   ],
 
   // A database is optional, but required to persist accounts in a database
   database: process.env.DATABASE_URL,
+  secret: process.env.NEXTAUTH_SECRET
 });
