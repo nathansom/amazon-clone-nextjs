@@ -54,10 +54,12 @@ export default async (req, res) => {
     let event;
 
     if (!sig)
-      res.status(400).send("Stripe signature is undefined in the headers.");
+      return res
+        .status(400)
+        .send("Stripe signature is undefined in the headers.");
 
     if (!endpointSecret)
-      res.status(400).send("Stripe signing secret is undefined.");
+      return res.status(400).send("Stripe signing secret is undefined.");
 
     // Verify that the Event posted came from Stripe
     try {
