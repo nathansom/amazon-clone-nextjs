@@ -2,22 +2,13 @@ import { buffer } from 'micro';
 import admin from "firebase-admin";
 
 // Secure a connection to Firebase from the backend
-const serviceAccount = {
-  type: "service_account",
-  project_id: process.env.FIREBASE_PROJECTID,
-  private_key_id: process.env.PRIVATE_KEY_ID,
-  private_key: process.env.PRIVATE_KEY,
-  client_email: process.env.FIREBASE_CLIENT_EMAIL,
-  client_id: process.env.FIREBASE_CLIENTID,
-  auth_uri: process.env.FIREBASE_AUTH_URI,
-  token_uri: process.env.FIREBASE_TOKEN_URI,
-  auth_provider_x509_cert_url: process.env.FIREBARE_AUTH_PROVIDER_X509CERT_URL,
-  client_x509_cert_url: process.env.FIREBASE_X509CERT_URL,
-  universe_domain: "googleapis.com",
-};
 
 const app = admin.initializeApp({
-  credential: admin.credential.cert(JSON.stringify(serviceAccount)),
+  credential: admin.credential.cert({
+    projectId: process.env.FIREBASE_PROJECTID,
+    privateKey: process.env.PRIVATE_KEY,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+  }),
 });
 
 // Establish connection to Stripe
