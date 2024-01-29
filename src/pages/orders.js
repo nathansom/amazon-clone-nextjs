@@ -1,4 +1,4 @@
-import { getSession, useSession } from "next-auth/client";
+import { getSession, useSession } from "next-auth/react";
 import Header from "../components/Header"
 import moment from "moment";
 import db from "../../firebase"
@@ -44,9 +44,8 @@ function Orders({ orders }) {
 
 export default Orders;
 
-// everything under SSR is Node.JS :) !
 export async function getServerSideProps(context) {
-    const stripe = require("stripe")(process.env.NEXT_PUBLIC_STRIPE_SECRET_KEY);
+    const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
     // Get the users logged in credentials....
     const session = await getSession(context);

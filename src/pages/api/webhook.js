@@ -1,19 +1,28 @@
 import { buffer } from 'micro';
-
-const admin = require('firebase-admin');
+import admin from "firebase-admin";
 
 // Secure a connection to Firebase from the backend
-const serviceAccount = require('../../../permissions');
+const serviceAccount = {
+  type: "service_account",
+  project_id: process.env.FIREBASE_PROJECTID,
+  private_key_id: process.env.PRIVATE_KEY_ID,
+  private_key: process.env.PRIVATE_KEY,
+  client_email: process.env.FIREBASE_CLIENT_EMAIL,
+  client_id: process.env.FIREBASE_CLIENTID,
+  auth_uri: process.env.FIREBASE_AUTH_URI,
+  token_uri: process.env.FIREBASE_TOKEN_URI,
+  auth_provider_x509_cert_url: process.env.FIREBARE_AUTH_PROVIDER_X509CERT_URL,
+  client_x509_cert_url: process.env.FIREBASE_X509CERT_URL,
+  universe_domain: "googleapis.com",
+};
 
-const app = !admin.apps.length 
-    ? admin.initializeApp({
+const app = admin.initializeApp({
         credential: admin.credential.cert(serviceAccount)
-        }) 
-    : admin.app();
+        });
 
 // Establish connection to Stripe
 
-const stripe = require("stripe")(process.env.NEXT_PUBLIC_STRIPE_SECRET_KEY);
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const endpointSecret = process.env.STRIPE_SIGNING_SECRET;
 
@@ -22,7 +31,7 @@ const fulfillOrder = async (session) => {
 
     return app
     .firestore()
-    .collection.apply('users')
+    .collection('users')
     .doc(session.metadata.email)
     .collection('orders').doc(session.id).set({
         amount: session.amount_total / 100,
