@@ -1,31 +1,25 @@
 import admin from "firebase-admin";
 
-// Secure a connection to Firebase from the backend
-const serviceAccount = {
-  type: "service_account",
-  project_id: process.env.FIREBASE_PROJECTID,
-  private_key_id: process.env.PRIVATE_KEY_ID,
-  private_key: process.env.PRIVATE_KEY,
-  client_email: process.env.FIREBASE_CLIENT_EMAIL,
-  client_id: process.env.FIREBASE_CLIENTID,
-  auth_uri: process.env.FIREBASE_AUTH_URI,
-  token_uri: process.env.FIREBASE_TOKEN_URI,
-  auth_provider_x509_cert_url: process.env.FIREBARE_AUTH_PROVIDER_X509CERT_URL,
-  client_x509_cert_url: process.env.FIREBASE_X509CERT_URL,
-  universe_domain: "googleapis.com",
-};
-
-const app = admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
-
-// Establish connection to Stripe
-
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-
-const endpointSecret = process.env.STRIPE_SIGNING_SECRET;
-
 const fulfillOrder = async (session) => {
+  // Secure a connection to Firebase from the backend
+  const serviceAccount = {
+    type: "service_account",
+    project_id: process.env.FIREBASE_PROJECTID,
+    private_key_id: process.env.PRIVATE_KEY_ID,
+    private_key: process.env.PRIVATE_KEY,
+    client_email: process.env.FIREBASE_CLIENT_EMAIL,
+    client_id: process.env.FIREBASE_CLIENTID,
+    auth_uri: process.env.FIREBASE_AUTH_URI,
+    token_uri: process.env.FIREBASE_TOKEN_URI,
+    auth_provider_x509_cert_url:
+      process.env.FIREBARE_AUTH_PROVIDER_X509CERT_URL,
+    client_x509_cert_url: process.env.FIREBASE_X509CERT_URL,
+    universe_domain: "googleapis.com",
+  };
+  const app = admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+  });
+
   console.log("Fulfilling order", session);
 
   return app
@@ -48,8 +42,10 @@ const fulfillOrder = async (session) => {
 
 export default async (req, res) => {
   if (req.method === "POST") {
-    const payload = req.body;
-    const sig = req.headers["stripe-signature"];
+    const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+    const endpointSecret = process.env.STRIPE_SIGNING_SECRET;
+    const payload = await req.text();
+    const sig = req.headers.get("stripe-signature");
 
     let event;
 
@@ -91,7 +87,7 @@ export default async (req, res) => {
 
 export const config = {
   api: {
-    bodyParser: true,
+    bodyParser: false,
     externalResolver: true,
   },
 };
