@@ -1,4 +1,3 @@
-import { buffer } from 'micro';
 import admin from "firebase-admin";
 
 // Secure a connection to Firebase from the backend
@@ -17,8 +16,8 @@ const serviceAccount = {
 };
 
 const app = admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-        });
+  credential: admin.credential.cert(serviceAccount),
+});
 
 // Establish connection to Stripe
 
@@ -27,55 +26,70 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const endpointSecret = process.env.STRIPE_SIGNING_SECRET;
 
 const fulfillOrder = async (session) => {
-    console.log('Fulfilling order', session)
+  console.log("Fulfilling order", session);
 
-    return app
+  return app
     .firestore()
-    .collection('users')
+    .collection("users")
     .doc(session.metadata.email)
-    .collection('orders').doc(session.id).set({
-        amount: session.amount_total / 100,
-        amount_shipping: session.total_details.amount_shipping / 100,
-        images: JSON.parse(session.metadata.images),
-        title: JSON.parse(session.metadata.titles),
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    .collection("orders")
+    .doc(session.id)
+    .set({
+      amount: session.amount_total / 100,
+      amount_shipping: session.total_details.amount_shipping / 100,
+      images: JSON.parse(session.metadata.images),
+      title: JSON.parse(session.metadata.titles),
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
     })
     .then(() => {
-        console.log(`SUCCESS: Order ${session.id} had been added to the DB`);
+      console.log(`SUCCESS: Order ${session.id} had been added to the DB`);
     });
 };
 
 export default async (req, res) => {
-    if (req.method === 'POST') {
-        const requestBuffer = await buffer(req);
-        const payload = requestBuffer.toString();
-        const sig = req.headers["stripe-signature"];
+  if (req.method === "POST") {
+    const payload = req.body;
+    const sig = req.headers["stripe-signature"];
 
-        let event;
+    let event;
 
-        // Verify that the Event posted came from Stripe
-        try {
-            event = stripe.webhooks.constructEvent(payload, sig, endpointSecret);
-        } catch (err) {
-            console.log('ERROR', err.message);
-            return res.status(400).send(`Webhook error: ${err.message}`);
-        }
+    if (!sig)
+      res.status(400).send("Stripe signature is undefined in the headers.");
 
-        // Handle the checkout.session.completed event
-        if (event.type === 'checkout.session.completed') {
-            const session = event.data.object;
+    if (!endpointSecret)
+      res.status(400).send("Stripe signing secret is undefined.");
 
-            // Fulfill the order
-            return fulfillOrder(session)
-            .then(() => res.status(200)
-            .catch((err) => res.status(400).send(`Webhook Error: ${err.message}`)));
-        };
-    };
+    // Verify that the Event posted came from Stripe
+    try {
+      event = stripe.webhooks.constructEvent(payload, sig, endpointSecret);
+    } catch (err) {
+      console.log("ERROR", err.message);
+      return res
+        .status(400)
+        .send(`Webhook error (Stripe connection): ${err.message}`);
+    }
+
+    // Handle the checkout.session.completed event
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object;
+
+      // Fulfill the order
+      return fulfillOrder(session).then(() =>
+        res
+          .status(200)
+          .catch((err) =>
+            res
+              .status(400)
+              .send(`Webhook Error (Firebase connection): ${err.message}`)
+          )
+      );
+    }
+  }
 };
 
 export const config = {
-    api: {
-        bodyParser: false,
-        externalResolver: true,
-    },
+  api: {
+    bodyParser: false,
+    externalResolver: true,
+  },
 };
