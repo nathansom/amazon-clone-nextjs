@@ -17,8 +17,8 @@ const serviceAccount = {
 };
 
 const app = admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-        });
+  credential: admin.credential.cert(JSON.stringify(serviceAccount)),
+});
 
 // Establish connection to Stripe
 
