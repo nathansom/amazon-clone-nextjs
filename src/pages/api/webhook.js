@@ -42,8 +42,16 @@ const fulfillOrder = async (session) => {
 
 export default async (req, res) => {
   if (req.method === "POST") {
-    const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+    const secretKey = process.env.STRIPE_SECRET_KEY;
     const endpointSecret = process.env.STRIPE_SIGNING_SECRET;
+
+    if (!secretKey)
+      return res.status(400).send("Stripe secret key is undefined.");
+
+    if (!endpointSecret)
+      return res.status(400).send("Stripe signing secret is undefined.");
+
+    const stripe = require("stripe")(secretKey);
     const payload = await req.text();
     const sig = req.headers.get("stripe-signature");
 
@@ -53,9 +61,6 @@ export default async (req, res) => {
       return res
         .status(400)
         .send("Stripe signature is undefined in the headers.");
-
-    if (!endpointSecret)
-      return res.status(400).send("Stripe signing secret is undefined.");
 
     // Verify that the Event posted came from Stripe
     try {
