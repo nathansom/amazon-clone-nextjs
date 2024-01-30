@@ -14,7 +14,7 @@ async function getStripeOrders(firestore, userEmail) {
 }
 
 function Orders({ orders }) {
-  const [session] = useSession();
+  const session = useSession();
 
   return (
     <div>
@@ -24,7 +24,7 @@ function Orders({ orders }) {
           Your Orders
         </h1>
 
-        {session ? (
+        {session.status === "authenticated" ? (
           <h2>{orders.length} Orders</h2>
         ) : (
           <h2>Please sign in to see your orders</h2>
@@ -40,7 +40,7 @@ function Orders({ orders }) {
                 amountShipping={amountShipping}
                 items={items}
                 timestamp={timestamp}
-                images={imags}
+                images={images}
               />
             )
           )}
