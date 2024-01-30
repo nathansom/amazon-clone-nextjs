@@ -1,4 +1,5 @@
 import admin from "firebase-admin";
+import { buffer } from "micro";
 
 const fulfillOrder = async (session) => {
   // Secure a connection to Firebase from the backend
@@ -6,7 +7,7 @@ const fulfillOrder = async (session) => {
     type: "service_account",
     project_id: process.env.FIREBASE_PROJECTID,
     private_key_id: process.env.PRIVATE_KEY_ID,
-    private_key: process.env.PRIVATE_KEY,
+    private_key: process.env.PRIVATE_KEY.replace(/\\n/gm, "\n"),
     client_email: process.env.FIREBASE_CLIENT_EMAIL,
     client_id: process.env.FIREBASE_CLIENTID,
     auth_uri: process.env.FIREBASE_AUTH_URI,
@@ -22,22 +23,25 @@ const fulfillOrder = async (session) => {
 
   console.log("Fulfilling order", session);
 
-  return app
-    .firestore()
-    .collection("users")
-    .doc(session.metadata.email)
-    .collection("orders")
-    .doc(session.id)
-    .set({
-      amount: session.amount_total / 100,
-      amount_shipping: session.total_details.amount_shipping / 100,
-      images: JSON.parse(session.metadata.images),
-      title: JSON.parse(session.metadata.titles),
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
-    })
-    .then(() => {
-      console.log(`SUCCESS: Order ${session.id} had been added to the DB`);
-    });
+  try {
+    const writeResult = await app
+      .firestore()
+      .collection("users")
+      .doc(session.metadata.email)
+      .collection("orders")
+      .doc(session.id)
+      .set({
+        amount: session.amount_total / 100,
+        amount_shipping: session.total_details.amount_shipping / 100,
+        images: JSON.parse(session?.metadata?.images || null),
+        productIds: JSON.parse(session?.metadata?.productIds || null),
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+    console.log("Successfully create order record at: ", writeResult.writeTime);
+  } catch (e) {
+    console.error("Failed to write order to database", e.message);
+  }
 };
 
 export default async (req, res) => {
@@ -52,8 +56,8 @@ export default async (req, res) => {
       return res.status(400).send("Stripe signing secret is undefined.");
 
     const stripe = require("stripe")(secretKey);
-    const payload = await req.text();
-    const sig = req.headers.get("stripe-signature");
+    const payload = await buffer(req);
+    const sig = req.headers["stripe-signature"];
 
     let event;
 
@@ -77,15 +81,15 @@ export default async (req, res) => {
       const session = event.data.object;
 
       // Fulfill the order
-      return fulfillOrder(session).then(() =>
-        res
-          .status(200)
-          .catch((err) =>
-            res
-              .status(400)
-              .send(`Webhook Error (Firebase connection): ${err.message}`)
-          )
-      );
+      try {
+        await fulfillOrder(session);
+
+        return res.status(200);
+      } catch (e) {
+        return res
+          .status(400)
+          .send(`Webhook Error (Firebase connection): ${err.message}`);
+      }
     }
   }
 };
